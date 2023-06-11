@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const port = process.env.PORT || 4000;
 
@@ -27,8 +28,15 @@ async function run() {
     await client.connect();
 
     const studentsCollection = client.db("SummerDb").collection("students");
-    // const classesCollection = client.db("bistroDb").collection("classes");
+    const classesCollection = client.db("SummerDb").collection("classes");
 
+    app.post('/jwt', (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+      res.send({token})
+    })
+   
+    // students related apis
     app.get('/students', async(req, res) => {
       const result = await studentsCollection.find().toArray();
       res.send(result)
@@ -45,6 +53,10 @@ async function run() {
       const result = await studentsCollection.insertOne(student);
       res.send(result);
     })
+
+    // classes related apis
+   
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
