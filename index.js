@@ -45,6 +45,7 @@ async function run() {
 
     const studentsCollection = client.db("SummerDb").collection("students");
     const classesCollection = client.db("SummerDb").collection("classes");
+    const cartCollection = client.db("SummerDb").collection("carts");
 
     app.post('/jwt', (req, res) => {
       const user = req.body;
@@ -70,7 +71,36 @@ async function run() {
       res.send(result);
     })
 
-    // classes related apis
+    // carts related apis
+    app.post('/carts', async(req, res) => {
+      const menu = req.body;
+      console.log(menu);
+      const result = await cartCollection.insertOne(menu);
+      res.send(result);
+    })
+
+    app.get('/carts', verifyJWT, async(req, res) => {
+      const email = req.query.email;
+      if(!email){
+        res.send([]);
+      }
+
+      const decodedEmail = req.decoded.email;
+      if(email !== decodedEmail){
+        return res.status(403).send({error: true, message: 'forbidden access'})
+      }
+
+       const query = { email : email };
+       const result = await cartCollection.find(query).toArray();
+       res.send(result);
+    });
+
+    app.delete('/carts/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query);
+      res.send(result);
+    })
    
 
     // Send a ping to confirm a successful connection
