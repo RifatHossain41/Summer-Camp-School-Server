@@ -3,7 +3,8 @@ const cors = require('cors');
 require('dotenv').config();
 const app = express();
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 4000;
 
 app.use(cors());
@@ -44,7 +45,7 @@ async function run() {
     await client.connect();
 
     const studentsCollection = client.db("SummerDb").collection("students");
-    const classesCollection = client.db("SummerDb").collection("classes");
+    const classCollection = client.db("SummerDb").collection("classes");
     const cartCollection = client.db("SummerDb").collection("carts");
 
     app.post('/jwt', (req, res) => {
@@ -101,6 +102,33 @@ async function run() {
       const result = await cartCollection.deleteOne(query);
       res.send(result);
     })
+
+    app.post('/create-payment-intent', verifyJWT, async(req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100)
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+    // classes related api
+    app.get('/classes', async(req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post('/classes', verifyJWT, async(req, res) => {
+      const newItem = req.body;
+      const result = await classCollection.insertOne(newItem)
+      res.send(result);
+    })
+
    
 
     // Send a ping to confirm a successful connection
