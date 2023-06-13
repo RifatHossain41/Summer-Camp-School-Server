@@ -63,6 +63,16 @@ async function run() {
       }
       next();
     }
+
+    const verifyInstructor = async(req, res, next) => {
+      const email = req.decoded.email;
+      const query = {email: email}
+      const user = await studentCollection.findOne(query);
+      if(user?.role !== 'instructor') {
+        return res.status(403).send({error: true, message: 'forbidden'})
+      }
+      next();
+    }
    
     // students related apis
     app.get('/students', async(req, res) => {
@@ -133,9 +143,16 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/classes', verifyJWT, verifyAdmin, async(req, res) => {
+    app.post('/classes', verifyJWT, async(req, res) => {
       const newItem = req.body;
       const result = await classCollection.insertOne(newItem)
+      res.send(result);
+    })
+
+    app.delete('/classes/:id', verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.deleteOne(query);
       res.send(result);
     })
 
