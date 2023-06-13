@@ -44,7 +44,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const studentsCollection = client.db("SummerDb").collection("students");
+    const studentCollection = client.db("SummerDb").collection("students");
     const classCollection = client.db("SummerDb").collection("classes");
     const cartCollection = client.db("SummerDb").collection("carts");
 
@@ -53,10 +53,20 @@ async function run() {
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
       res.send({token})
     })
+
+    const verifyAdmin = async(req, res, next) => {
+      const email = req.decoded.email;
+      const query = {email: email}
+      const user = await studentCollection.findOne(query);
+      if(user?.role !== 'admin') {
+        return res.status(403).send({error: true, message: 'forbidden'})
+      }
+      next();
+    }
    
     // students related apis
     app.get('/students', async(req, res) => {
-      const result = await studentsCollection.find().toArray();
+      const result = await studentCollection.find().toArray();
       res.send(result)
     });
 
@@ -68,7 +78,7 @@ async function run() {
       if(existingStudent) {
         return res.send({message: 'Student already exists'})
       }
-      const result = await studentsCollection.insertOne(student);
+      const result = await studentCollection.insertOne(student);
       res.send(result);
     })
 
@@ -123,7 +133,7 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/classes', verifyJWT, async(req, res) => {
+    app.post('/classes', verifyJWT, verifyAdmin, async(req, res) => {
       const newItem = req.body;
       const result = await classCollection.insertOne(newItem)
       res.send(result);
