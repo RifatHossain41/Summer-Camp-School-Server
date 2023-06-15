@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const SSLCommerzPayment = require('sslcommerz-lts')
 require('dotenv').config();
 const app = express();
 const jwt = require('jsonwebtoken');
@@ -47,7 +48,8 @@ async function run() {
     const studentCollection = client.db("SummerDb").collection("students");
     const classCollection = client.db("SummerDb").collection("classes");
     const cartCollection = client.db("SummerDb").collection("carts");
-
+    const casteCollection = client.db("SummerDb").collection("caste");
+  
     app.post('/jwt', (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
@@ -73,7 +75,8 @@ async function run() {
       }
       next();
     }
-   
+
+    
     // students related apis
     app.get('/students', async(req, res) => {
       const result = await studentCollection.find().toArray();
@@ -212,8 +215,6 @@ async function run() {
       res.send(result)
     })
 
-
-
     app.delete('/classes/:id', verifyJWT,  async(req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -221,6 +222,16 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/caste', async(req, res) => {
+      const result = await casteCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post('/caste', verifyJWT, async(req, res) => {
+      const newItem = req.body;
+      const result = await casteCollection.insertOne(newItem)
+      res.send(result);
+    })
    
 
     // Send a ping to confirm a successful connection
