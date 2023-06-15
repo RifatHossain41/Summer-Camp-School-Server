@@ -57,7 +57,7 @@ async function run() {
     const verifyAdmin = async(req, res, next) => {
       const email = req.decoded.email;
       const query = {email: email}
-      const user = await studentCollection.findOne(query);
+      const user = await classCollection.findOne(query);
       if(user?.role !== 'admin') {
         return res.status(403).send({error: true, message: 'forbidden'})
       }
@@ -67,7 +67,7 @@ async function run() {
     const verifyInstructor = async(req, res, next) => {
       const email = req.decoded.email;
       const query = {email: email}
-      const user = await studentCollection.findOne(query);
+      const user = await classCollection.findOne(query);
       if(user?.role !== 'instructor') {
         return res.status(403).send({error: true, message: 'forbidden'})
       }
@@ -82,9 +82,9 @@ async function run() {
 
     app.post('/students', async(req, res) => {
       const student = req.body;
-      console.log(student);
       const query  = {email: student.email}
-      const existingStudent = await studentsCollection.findOne(query);
+      console.log(query);
+      const existingStudent = await studentCollection.findOne(query);
       if(existingStudent) {
         return res.send({message: 'Student already exists'})
       }
@@ -92,6 +92,57 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/students/admin/:email', verifyJWT, async(req, res) => {
+      const email = req.params.email;
+
+      if(req.decoded.email !== email){
+        res.send({admin: false})
+      }
+
+      const query = {email: email}
+      const user = await studentCollection.findOne(query)
+      const result = {admin: user?.role === 'admin'}
+      res.send(result);
+    })
+
+    app.patch('/students/admin/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+      const result = await studentCollection.updateOne(filter, updateDoc);
+      res.send(result)
+    })
+
+    app.get('/students/instructor/:email', verifyJWT, async(req, res) => {
+      const email = req.params.email;
+
+      if(req.decoded.email !== email){
+        res.send({instructor: false})
+      }
+
+      const query = {email: email}
+      const user = await studentCollection.findOne(query)
+      const result = {instructor: user?.role === 'instructor'}
+      res.send(result);
+    })
+
+    app.patch('/students/instructor/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'instructor'
+        },
+      };
+      const result = await studentCollection.updateOne(filter, updateDoc);
+      res.send(result)
+    })
+
+    
     // carts related apis
     app.post('/carts', async(req, res) => {
       const menu = req.body;
@@ -148,8 +199,22 @@ async function run() {
       const result = await classCollection.insertOne(newItem)
       res.send(result);
     })
+    
+    app.patch('/classes/admin/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result)
+    })
 
-    app.delete('/classes/:id', verifyJWT, async(req, res) => {
+
+
+    app.delete('/classes/:id', verifyJWT,  async(req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await classCollection.deleteOne(query);
